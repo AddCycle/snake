@@ -20,6 +20,24 @@
 #define APPLE_COLOR RED
 #define SNAKE_COLOR WHITE
 
+struct Apple
+{
+  int x, y;
+};
+
+struct SnakeElement
+{
+  int x, y;
+
+  /* only last element is NULL */
+  struct SnakeElement *next;
+};
+
+struct Direction
+{
+  int dx, dy;
+};
+
 void draw_grid(SDL_Surface *surface)
 {
   SDL_Rect row_line = {0, 0, WIDTH, LINE_WIDTH};
@@ -37,6 +55,42 @@ void fill_cell(SDL_Surface *surface, int x, int y, Uint32 color)
   SDL_FillSurfaceRect(surface, &rect, color);
 }
 
+void reset_apple(struct SnakeElement *snakeElement, struct Apple *apple)
+{
+  apple->x = COLS * ((double)rand() / RAND_MAX);
+  apple->y = ROWS * ((double)rand() / RAND_MAX);
+
+  /* if the apple coords collides with snake ones, try again */
+  do
+  {
+    if (snakeElement->x == apple->x && snakeElement->y == apple->y)
+    {
+      reset_apple(snakeElement, apple);
+    }
+    snakeElement = snakeElement->next;
+  } while (snakeElement != NULL);
+}
+
+void draw_apple(SDL_Surface *surface, struct Apple *apple)
+{
+  APPLE(apple->x, apple->y);
+}
+
+void draw_snake(SDL_Surface *surface, struct SnakeElement *snakeElement)
+{
+  if (snakeElement)
+  {
+    SNAKE(snakeElement->x, snakeElement->y);
+    draw_snake(surface, snakeElement->next);
+  }
+}
+
+void move_snake(struct SnakeElement *snakeElement, struct Direction *direction)
+{
+  snakeElement->x += direction->dx;
+  snakeElement->y += direction->dy;
+}
+
 int main(int argc, char *argv[])
 {
   if (!SDL_Init(SDL_INIT_VIDEO))
@@ -52,10 +106,11 @@ int main(int argc, char *argv[])
   SDL_Event event;
 
   int game = 1;
-  int snake_x = 5;
-  int snake_y = 5;
-  int apple_x = 9;
-  int apple_y = 10;
+
+  struct SnakeElement snake = {5, 5, NULL};
+  struct Apple apple = {9, 5};
+  struct Direction direction;
+
   while (game)
   {
     while (SDL_PollEvent(&event))
@@ -66,24 +121,33 @@ int main(int argc, char *argv[])
       }
       if (event.type == SDL_EVENT_KEY_DOWN)
       {
+        direction.dx = 0;
+        direction.dy = 0;
         if (event.key.key == SDLK_RIGHT)
-          snake_x++;
+          direction.dx = 1;
         if (event.key.key == SDLK_LEFT)
-          snake_x--;
+          direction.dx = -1;
         if (event.key.key == SDLK_DOWN)
-          snake_y++;
+          direction.dy = 1;
         if (event.key.key == SDLK_UP)
-          snake_y--;
+          direction.dy = -1;
         if (event.key.key == SDLK_ESCAPE)
           game = 0;
       }
     }
-    SNAKE(snake_x, snake_y);
-    APPLE(apple_x, apple_y);
+
+    move_snake(&snake, &direction);
+    if (snake.x == apple.x && snake.y == apple.y)
+    {
+      reset_apple(&snake, &apple);
+    }
+
+    draw_apple(surface, &apple);
+    draw_snake(surface, &snake);
     DRAW_GRID;
     SDL_UpdateWindowSurface(window);
     SDL_ClearSurface(surface, 0, 0, 0, 0);
-    SDL_Delay(20);
+    SDL_Delay(50);
   }
 
   SDL_DestroyWindow(window);
