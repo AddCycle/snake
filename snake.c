@@ -379,6 +379,7 @@ int main(int argc, char *argv[])
 
   const int target_fps = 60;                 // maximum FPS
   int snake_fps = 10;                        // snake moves 10 times per second
+  int target_snake_fps = 10;                 // the snake speed wanted by the player
   const int frame_delay = 1000 / target_fps; // ms per frame
   int snake_frame_delay = 1000 / snake_fps;  // ms per snake move
 
@@ -448,8 +449,8 @@ int main(int argc, char *argv[])
         if (event.key.key == SDLK_SPACE)
         {
           printf("snake speed boost\n");
-          snake_fps = 30;
-          snake_frame_delay = 1000 / snake_fps;
+          target_snake_fps = 30;
+          // snake_frame_delay = 1000 / snake_fps;
           snake_color = YELLOW;
         }
         if (event.key.key == SDLK_F && !f_key_press)
@@ -467,8 +468,8 @@ int main(int argc, char *argv[])
         if (event.key.key == SDLK_SPACE)
         {
           printf("boost gone\n");
-          snake_fps = 10;
-          snake_frame_delay = 1000 / snake_fps;
+          target_snake_fps = 10;
+          // snake_frame_delay = 1000 / snake_fps;
           snake_color = WHITE;
         }
         if (event.key.key == SDLK_F)
@@ -477,6 +478,17 @@ int main(int argc, char *argv[])
         }
       }
     }
+
+    if (snake_fps < target_snake_fps)
+    {
+      snake_fps++; // accelerate
+    }
+    else if (snake_fps > target_snake_fps)
+    {
+      snake_fps--; // decelerate
+    }
+    snake_frame_delay = 1000 / snake_fps;
+
     Uint32 now = SDL_GetTicks();
     Uint32 delta_snake = now - last_snake_time;
     if (delta_snake >= snake_frame_delay)
