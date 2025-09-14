@@ -206,6 +206,7 @@ void init_keys(SDL_Keycode allowed_keys[MAX_KEYBOARD_KEYS])
   allowed_keys[index++] = SDLK_DOWN;
   allowed_keys[index++] = SDLK_SPACE;
   allowed_keys[index++] = SDLK_ESCAPE;
+  allowed_keys[index++] = SDLK_F;
 }
 
 int main(int argc, char *argv[])
@@ -230,6 +231,7 @@ int main(int argc, char *argv[])
   SDL_Event event;
 
   int game = 1;
+  bool f_key_press = false;
 
   // initializing the allowed keys in our game
   SDL_Keycode allowed_keys[MAX_KEYBOARD_KEYS];
@@ -312,6 +314,12 @@ int main(int argc, char *argv[])
           snake_frame_delay = 1000 / snake_fps;
           snake_color = YELLOW;
         }
+        if (event.key.key == SDLK_F && !f_key_press)
+        {
+          printf("f_key_pressed\n");
+          SDL_MaximizeWindow(window);
+          f_key_press = true;
+        }
         if (event.key.key == SDLK_ESCAPE)
           game = 0;
       }
@@ -324,6 +332,10 @@ int main(int argc, char *argv[])
           snake_fps = 10;
           snake_frame_delay = 1000 / snake_fps;
           snake_color = WHITE;
+        }
+        if (event.key.key == SDLK_F)
+        {
+          f_key_press = false;
         }
       }
     }
