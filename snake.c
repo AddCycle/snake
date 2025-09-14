@@ -1,5 +1,26 @@
 #include "snake.h"
 
+void write_high_score(int score)
+{
+  FILE *file = fopen("high_score.txt", "w");
+
+  fprintf(file, "%d", score);
+
+  fclose(file);
+}
+
+int read_high_score()
+{
+  FILE *file = fopen("high_score.txt", "r");
+  int score = 0;
+
+  fscanf(file, "%d", &score);
+
+  fclose(file);
+
+  return score;
+}
+
 void draw_grid(SDL_Surface *surface, int width, int height, int cell_size)
 {
   SDL_Rect row_line = {0, 0, width, LINE_WIDTH};
@@ -308,6 +329,7 @@ int main(int argc, char *argv[])
   SDL_Keycode allowed_keys[MAX_KEYBOARD_KEYS];
   init_keys(allowed_keys);
 
+  int high_score = read_high_score();
   struct GameState gamestate;
   init_game(&gamestate);
 
@@ -435,7 +457,7 @@ int main(int argc, char *argv[])
     draw_snake(surface, snake, cell_size, snake_color);
     DRAW_GRID;
 
-    char buffer[64]; // enough space for "Score: <big number>"
+    char buffer[64];
     snprintf(buffer, sizeof(buffer), "Score: %d", gamestate.score);
     SDL_Color white = {255, 255, 255, 150};
     SDL_Surface *text_surface = TTF_RenderText_Blended(font, buffer, 0, white);
@@ -444,6 +466,17 @@ int main(int argc, char *argv[])
       SDL_Rect text_rect;
       text_rect.x = width / 2 - text_surface->w / 2;
       text_rect.y = height / 4 - text_surface->h / 2;
+      SDL_BlitSurface(text_surface, NULL, surface, &text_rect);
+      SDL_DestroySurface(text_surface);
+    }
+
+    snprintf(buffer, sizeof(buffer), "High Score: %d", high_score);
+    text_surface = TTF_RenderText_Blended(font, buffer, 0, white);
+    if (text_surface)
+    {
+      SDL_Rect text_rect;
+      text_rect.x = width / 2 - text_surface->w / 2;
+      text_rect.y = height / 4 + 30; // second line, adjust offset
       SDL_BlitSurface(text_surface, NULL, surface, &text_rect);
       SDL_DestroySurface(text_surface);
     }
@@ -466,6 +499,8 @@ int main(int argc, char *argv[])
       SDL_Delay(frame_delay - frame_time);
   }
 
+  if (gamestate.score > high_score)
+    write_high_score(gamestate.score);
   free_snake(snake);
   TTF_CloseFont(font);
   TTF_Quit();

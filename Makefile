@@ -4,13 +4,13 @@ DEBUGGER_FLAGS=-g
 all: build run
 
 build:
-	clang snake.c -o snake $(FLAGS)
+	clang snake.c -o snake.exe $(FLAGS)
 	
 run:
 	./snake
 
 debug:
-	clang snake.c -o snake $(FLAGS) $(DEBUGGER_FLAGS)
+	clang snake.c -o snake.exe $(FLAGS) $(DEBUGGER_FLAGS)
 
 clean:
-	rm -rf *.o *.pdb snake
+	rm -rf *.o *.pdb snake.exe
