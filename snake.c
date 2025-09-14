@@ -281,6 +281,42 @@ int main_menu(SDL_Window *window, SDL_Surface *surface, int width, int height)
           return 2; // quit immediately
         }
       }
+      if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
+      {
+        SDL_MouseButtonEvent mb = event.button;
+        if (mb.button == SDL_BUTTON_LEFT)
+        {
+          // button 1 box : play
+          if (mb.x >= width / 2 - 100 && mb.x <= (width / 2 - 100) + 220 && mb.y >= height / 2 - 50 && mb.y <= height / 2)
+          {
+            SDL_Log("play");
+            return 1;
+          }
+
+          // button 2 box : quit
+          if (mb.x >= width / 2 - 100 && mb.x <= (width / 2 - 100) + 220 && mb.y >= height / 2 - 25 + play_rect.h && mb.y <= height / 2 + 25 + play_rect.h)
+          {
+            SDL_Log("quit");
+            return 2; // quit
+          }
+        }
+      }
+      if (event.type == SDL_EVENT_MOUSE_MOTION)
+      {
+        int x = event.motion.x;
+        int y = event.motion.y;
+        // button 1 box : play (hover)
+        if (x >= width / 2 - 100 && x <= (width / 2 - 100) + 220 && y >= height / 2 - 50 && y <= height / 2)
+        {
+          choice = 1;
+        }
+
+        // button 2 box : quit (hover)
+        if (x >= width / 2 - 100 && x <= (width / 2 - 100) + 220 && y >= height / 2 - 25 + play_rect.h && y <= height / 2 + 25 + play_rect.h)
+        {
+          choice = 2;
+        }
+      }
     }
   }
   TTF_CloseFont(font);
