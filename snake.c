@@ -158,6 +158,23 @@ void lengthen_snake(struct SnakeElement *snake)
   snake->next = new_part;
 }
 
+bool check_collision(struct SnakeElement *snake)
+{
+  int head_x = snake->x;
+  int head_y = snake->y;
+
+  struct SnakeElement *current = snake->next;
+  while (current)
+  {
+    if (current->x == head_x && current->y == head_y)
+    {
+      return true;
+    }
+    current = current->next;
+  }
+  return false;
+}
+
 void init_game(struct GameState *gamestate)
 {
   // initialize the game (difficulty, level, ...)
@@ -264,25 +281,25 @@ int main(int argc, char *argv[])
       }
       if (event.type == SDL_EVENT_KEY_DOWN && is_allowed_key(event.key.key, allowed_keys))
       {
-        if (event.key.key == SDLK_RIGHT)
+        if (event.key.key == SDLK_RIGHT && direction.dx != -1)
         {
           direction.dx = 0;
           direction.dy = 0;
           direction.dx = 1;
         }
-        if (event.key.key == SDLK_LEFT)
+        if (event.key.key == SDLK_LEFT && direction.dx != 1)
         {
           direction.dx = 0;
           direction.dy = 0;
           direction.dx = -1;
         }
-        if (event.key.key == SDLK_DOWN)
+        if (event.key.key == SDLK_DOWN && direction.dy != -1)
         {
           direction.dx = 0;
           direction.dy = 0;
           direction.dy = 1;
         }
-        if (event.key.key == SDLK_UP)
+        if (event.key.key == SDLK_UP && direction.dy != 1)
         {
           direction.dx = 0;
           direction.dy = 0;
@@ -315,6 +332,12 @@ int main(int argc, char *argv[])
     if (delta_snake >= snake_frame_delay)
     {
       move_snake(snake, &direction, cols, rows);
+
+      if (check_collision(snake))
+      {
+        printf("Game Over! You were too strong for yourself.\n");
+        game = 0;
+      }
 
       if (snake->x == apple.x && snake->y == apple.y)
       {
