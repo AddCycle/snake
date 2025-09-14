@@ -375,6 +375,7 @@ int main(int argc, char *argv[])
 
   struct Apple apple = {0, 0};
   struct Direction direction = {0, 0};
+  struct Direction next_direction = {0, 0}; // in order to buffer the direction and only apply it when the move occurs
 
   const int target_fps = 60;                 // maximum FPS
   int snake_fps = 10;                        // snake moves 10 times per second
@@ -414,27 +415,35 @@ int main(int argc, char *argv[])
       {
         if (event.key.key == SDLK_RIGHT && direction.dx != -1)
         {
-          direction.dx = 0;
-          direction.dy = 0;
-          direction.dx = 1;
+          // direction.dx = 0;
+          // direction.dy = 0;
+          // direction.dx = 1;
+          next_direction.dx = 1;
+          next_direction.dy = 0;
         }
         if (event.key.key == SDLK_LEFT && direction.dx != 1)
         {
-          direction.dx = 0;
-          direction.dy = 0;
-          direction.dx = -1;
+          // direction.dx = 0;
+          // direction.dy = 0;
+          // direction.dx = -1;
+          next_direction.dx = -1;
+          next_direction.dy = 0;
         }
         if (event.key.key == SDLK_DOWN && direction.dy != -1)
         {
-          direction.dx = 0;
-          direction.dy = 0;
-          direction.dy = 1;
+          // direction.dx = 0;
+          // direction.dy = 0;
+          // direction.dy = 1;
+          next_direction.dx = 0;
+          next_direction.dy = 1;
         }
         if (event.key.key == SDLK_UP && direction.dy != 1)
         {
-          direction.dx = 0;
-          direction.dy = 0;
-          direction.dy = -1;
+          // direction.dx = 0;
+          // direction.dy = 0;
+          // direction.dy = -1;
+          next_direction.dx = 0;
+          next_direction.dy = -1;
         }
         if (event.key.key == SDLK_SPACE)
         {
@@ -472,6 +481,7 @@ int main(int argc, char *argv[])
     Uint32 delta_snake = now - last_snake_time;
     if (delta_snake >= snake_frame_delay)
     {
+      direction = next_direction; // apply buffered direction inputs
       move_snake(snake, &direction, cols, rows);
 
       if (check_collision(snake))
