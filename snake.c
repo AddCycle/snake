@@ -1,5 +1,6 @@
 #include <SDL3/SDL.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define WIDTH 900
 #define HEIGHT 600
@@ -19,6 +20,11 @@
 #define GRID_COLOR 0x1f1f1f1f
 #define APPLE_COLOR RED
 #define SNAKE_COLOR WHITE
+
+struct GameState
+{
+  int score;
+};
 
 struct Apple
 {
@@ -78,17 +84,93 @@ void draw_apple(SDL_Surface *surface, struct Apple *apple)
 
 void draw_snake(SDL_Surface *surface, struct SnakeElement *snakeElement)
 {
-  if (snakeElement)
+  SNAKE(snakeElement->x, snakeElement->y);
+  if (snakeElement->next)
   {
-    SNAKE(snakeElement->x, snakeElement->y);
     draw_snake(surface, snakeElement->next);
   }
 }
 
-void move_snake(struct SnakeElement *snakeElement, struct Direction *direction)
+void move_snake(struct SnakeElement *snake, struct Direction *direction)
 {
-  snakeElement->x += direction->dx;
-  snakeElement->y += direction->dy;
+  int prev_x = snake->x;
+  int prev_y = snake->y;
+
+  // move head
+  snake->x += direction->dx;
+  snake->y += direction->dy;
+
+  // wrap around (portal style)
+  if (snake->x >= COLS)
+    snake->x = 0;
+  if (snake->x < 0)
+    snake->x = COLS - 1;
+  if (snake->y >= ROWS)
+    snake->y = 0;
+  if (snake->y < 0)
+    snake->y = ROWS - 1;
+
+  // move body: each part takes the previous one's old coords
+  struct SnakeElement *current = snake->next;
+  while (current)
+  {
+    int tmp_x = current->x;
+    int tmp_y = current->y;
+    current->x = prev_x;
+    current->y = prev_y;
+    prev_x = tmp_x;
+    prev_y = tmp_y;
+
+    current = current->next;
+  }
+}
+
+void init_snake(struct SnakeElement *snake, int x, int y)
+{
+  snake->x = x;
+  snake->y = y;
+  snake->next = NULL;
+}
+
+void free_snake(struct SnakeElement *snake)
+{
+  if (snake != NULL)
+  {
+    free_snake(snake->next);
+    free(snake);
+  }
+}
+
+void lengthen_snake(struct SnakeElement *snake)
+{
+  // traverse to the last element
+  while (snake->next != NULL)
+    snake = snake->next;
+
+  // allocate new segment
+  struct SnakeElement *new_part = malloc(sizeof(struct SnakeElement));
+  if (!new_part)
+  {
+    printf("failed to allocate the next body part\n");
+    return;
+  }
+
+  new_part->x = snake->x;
+  new_part->y = snake->y;
+  new_part->next = NULL;
+
+  snake->next = new_part;
+}
+
+void init_game(struct GameState *gamestate)
+{
+  // initialize the game (difficulty, level, ...)
+}
+
+void score(struct GameState *gamestate)
+{
+  gamestate->score++;
+  printf("score: %d\n", gamestate->score);
 }
 
 int main(int argc, char *argv[])
@@ -107,8 +189,13 @@ int main(int argc, char *argv[])
 
   int game = 1;
 
-  struct SnakeElement snake = {5, 5, NULL};
-  struct Apple apple = {9, 5};
+  struct GameState gamestate;
+  init_game(&gamestate);
+
+  struct SnakeElement *snake = malloc(sizeof(struct SnakeElement));
+  init_snake(snake, 5, 5);
+
+  struct Apple apple = {0, 0};
   struct Direction direction;
 
   while (game)
@@ -136,19 +223,23 @@ int main(int argc, char *argv[])
       }
     }
 
-    move_snake(&snake, &direction);
-    if (snake.x == apple.x && snake.y == apple.y)
+    move_snake(snake, &direction);
+    if (snake->x == apple.x && snake->y == apple.y)
     {
-      reset_apple(&snake, &apple);
+      reset_apple(snake, &apple);
+      lengthen_snake(snake);
+      score(&gamestate);
     }
 
     draw_apple(surface, &apple);
-    draw_snake(surface, &snake);
+    draw_snake(surface, snake);
     DRAW_GRID;
     SDL_UpdateWindowSurface(window);
     SDL_ClearSurface(surface, 0, 0, 0, 0);
     SDL_Delay(50);
   }
+
+  free_snake(snake);
 
   SDL_DestroyWindow(window);
   SDL_Quit();
