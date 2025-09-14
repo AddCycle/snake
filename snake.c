@@ -8,14 +8,14 @@
 #define LINE_WIDTH 2
 
 #define DRAW_GRID draw_grid(surface, width, height, cell_size)
-#define SNAKE(x, y) fill_cell(surface, x, y, SNAKE_COLOR, cell_size)
+#define SNAKE(x, y) fill_cell(surface, x, y, snake_color, cell_size)
 #define APPLE(x, y) fill_cell(surface, x, y, APPLE_COLOR, cell_size)
 
 #define WHITE 0xffffffff
 #define RED 0x00ff0000
+#define YELLOW 0xffff00
 #define GRID_COLOR 0x1f1f1f1f
 #define APPLE_COLOR RED
-#define SNAKE_COLOR WHITE
 
 struct GameState
 {
@@ -78,12 +78,12 @@ void draw_apple(SDL_Surface *surface, struct Apple *apple, int cell_size)
   APPLE(apple->x, apple->y);
 }
 
-void draw_snake(SDL_Surface *surface, struct SnakeElement *snakeElement, int cell_size)
+void draw_snake(SDL_Surface *surface, struct SnakeElement *snakeElement, int cell_size, int snake_color)
 {
   SNAKE(snakeElement->x, snakeElement->y);
   if (snakeElement->next)
   {
-    draw_snake(surface, snakeElement->next, cell_size);
+    draw_snake(surface, snakeElement->next, cell_size, snake_color);
   }
 }
 
@@ -187,6 +187,7 @@ void init_keys(SDL_Keycode allowed_keys[MAX_KEYBOARD_KEYS])
   allowed_keys[index++] = SDLK_RIGHT;
   allowed_keys[index++] = SDLK_UP;
   allowed_keys[index++] = SDLK_DOWN;
+  allowed_keys[index++] = SDLK_SPACE;
   allowed_keys[index++] = SDLK_ESCAPE;
 }
 
@@ -220,14 +221,26 @@ int main(int argc, char *argv[])
   struct GameState gamestate;
   init_game(&gamestate);
 
+  int snake_color = WHITE;
   struct SnakeElement *snake = malloc(sizeof(struct SnakeElement));
   init_snake(snake, 5, 5);
 
   struct Apple apple = {0, 0};
-  struct Direction direction;
+  struct Direction direction = {0, 0};
+
+  const int target_fps = 60;                 // maximum FPS
+  int snake_fps = 10;                        // snake moves 10 times per second
+  const int frame_delay = 1000 / target_fps; // ms per frame
+  int snake_frame_delay = 1000 / snake_fps;  // ms per snake move
+
+  Uint32 last_snake_time = SDL_GetTicks();
+  Uint32 last_fps_time = SDL_GetTicks();
+  int frames = 0;
 
   while (game)
   {
+    Uint32 frame_start = SDL_GetTicks();
+
     while (SDL_PollEvent(&event))
     {
       if (event.type == SDL_EVENT_QUIT)
@@ -251,35 +264,86 @@ int main(int argc, char *argv[])
       }
       if (event.type == SDL_EVENT_KEY_DOWN && is_allowed_key(event.key.key, allowed_keys))
       {
-        direction.dx = 0;
-        direction.dy = 0;
         if (event.key.key == SDLK_RIGHT)
+        {
+          direction.dx = 0;
+          direction.dy = 0;
           direction.dx = 1;
+        }
         if (event.key.key == SDLK_LEFT)
+        {
+          direction.dx = 0;
+          direction.dy = 0;
           direction.dx = -1;
+        }
         if (event.key.key == SDLK_DOWN)
+        {
+          direction.dx = 0;
+          direction.dy = 0;
           direction.dy = 1;
+        }
         if (event.key.key == SDLK_UP)
+        {
+          direction.dx = 0;
+          direction.dy = 0;
           direction.dy = -1;
+        }
+        if (event.key.key == SDLK_SPACE)
+        {
+          printf("snake speed boost\n");
+          snake_fps = 30;
+          snake_frame_delay = 1000 / snake_fps;
+          snake_color = YELLOW;
+        }
         if (event.key.key == SDLK_ESCAPE)
           game = 0;
       }
-    }
 
-    move_snake(snake, &direction, cols, rows);
-    if (snake->x == apple.x && snake->y == apple.y)
+      if (event.type == SDL_EVENT_KEY_UP && is_allowed_key(event.key.key, allowed_keys))
+      {
+        if (event.key.key == SDLK_SPACE)
+        {
+          printf("boost gone\n");
+          snake_fps = 10;
+          snake_frame_delay = 1000 / snake_fps;
+          snake_color = WHITE;
+        }
+      }
+    }
+    Uint32 now = SDL_GetTicks();
+    Uint32 delta_snake = now - last_snake_time;
+    if (delta_snake >= snake_frame_delay)
     {
-      reset_apple(snake, &apple, cols, rows);
-      lengthen_snake(snake);
-      score(&gamestate);
+      move_snake(snake, &direction, cols, rows);
+
+      if (snake->x == apple.x && snake->y == apple.y)
+      {
+        reset_apple(snake, &apple, cols, rows);
+        lengthen_snake(snake);
+        score(&gamestate);
+      }
+      last_snake_time = now;
     }
 
     draw_apple(surface, &apple, cell_size);
-    draw_snake(surface, snake, cell_size);
+    draw_snake(surface, snake, cell_size, snake_color);
     DRAW_GRID;
     SDL_UpdateWindowSurface(window);
     SDL_ClearSurface(surface, 0, 0, 0, 0);
-    SDL_Delay(50);
+
+    // --- FPS counter ---
+    frames++;
+    if (now - last_fps_time >= 1000)
+    {
+      printf("FPS: %d\n", frames);
+      frames = 0;
+      last_fps_time = now;
+    }
+
+    // --- Frame cap ---
+    Uint32 frame_time = SDL_GetTicks() - frame_start;
+    if (frame_time < frame_delay)
+      SDL_Delay(frame_delay - frame_time);
   }
 
   free_snake(snake);
