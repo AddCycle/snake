@@ -175,11 +175,30 @@ int main_menu(SDL_Window *window, SDL_Surface *surface, int width, int height)
   SDL_Event event;
   int choice = 0; // 1 = Play, 2 = Quit
   int running = 1;
+  TTF_Font *font = TTF_OpenFont("PressStart2P.ttf", 20);
+  if (!font)
+  {
+    SDL_Log("Failed to load font: %s", SDL_GetError());
+    return 2;
+  }
+
+  SDL_Color white = {255, 255, 255, 255};
+  SDL_Color black = {0, 0, 0, 255};
 
   while (running)
   {
     // Clear screen
     SDL_ClearSurface(surface, 0, 0, 0, 0);
+
+    SDL_Surface *text_surface = TTF_RenderText_Blended(font, "SNAKE CLASSIC", 0, white);
+    if (text_surface)
+    {
+      SDL_Rect text_rect;
+      text_rect.x = width / 2 - text_surface->w / 2;
+      text_rect.y = height / 4 - text_surface->h / 2;
+      SDL_BlitSurface(text_surface, NULL, surface, &text_rect);
+      SDL_DestroySurface(text_surface);
+    }
 
     // Draw simple rectangles as buttons with outlines
     SDL_Rect outline_rect_play = {width / 2 - 110, height / 2 - 55, 220, 60};
@@ -195,12 +214,35 @@ int main_menu(SDL_Window *window, SDL_Surface *surface, int width, int height)
       SDL_FillSurfaceRect(surface, &outline_rect_quit, 0xffffff);
     SDL_FillSurfaceRect(surface, &quit_rect, 0xff0000); // red
 
+    SDL_Surface *play_text_surface = TTF_RenderText_Blended(font, "PLAY", 0, black);
+    if (play_text_surface)
+    {
+      SDL_Rect text_rect;
+      text_rect.x = width / 2 - play_text_surface->w / 2;
+      text_rect.y = height / 4 - play_text_surface->h / 2 + 125;
+      SDL_BlitSurface(play_text_surface, NULL, surface, &text_rect);
+      SDL_DestroySurface(play_text_surface);
+    }
+
+    SDL_Surface *quit_text_surface = TTF_RenderText_Blended(font, "EXIT", 0, black);
+    if (quit_text_surface)
+    {
+      SDL_Rect text_rect;
+      text_rect.x = width / 2 - quit_text_surface->w / 2;
+      text_rect.y = height / 4 - quit_text_surface->h / 2 + 200;
+      SDL_BlitSurface(quit_text_surface, NULL, surface, &text_rect);
+      SDL_DestroySurface(quit_text_surface);
+    }
+
     SDL_UpdateWindowSurface(window);
 
     while (SDL_PollEvent(&event))
     {
       if (event.type == SDL_EVENT_QUIT)
+      {
+        TTF_CloseFont(font);
         return 2; // quit
+      }
       if (event.type == SDL_EVENT_KEY_DOWN)
       {
         if (event.key.key == SDLK_UP || event.key.key == SDLK_W)
@@ -208,12 +250,19 @@ int main_menu(SDL_Window *window, SDL_Surface *surface, int width, int height)
         if (event.key.key == SDLK_DOWN || event.key.key == SDLK_S)
           choice = 2; // Quit selected
         if (event.key.key == SDLK_RETURN || event.key.key == SDLK_KP_ENTER || event.key.key == SDLK_SPACE)
+        {
+          TTF_CloseFont(font);
           return choice; // return selection
+        }
         if (event.key.key == SDLK_ESCAPE)
+        {
+          TTF_CloseFont(font);
           return 2; // quit immediately
+        }
       }
     }
   }
+  TTF_CloseFont(font);
   return 2; // default quit
 }
 
@@ -224,6 +273,10 @@ int main(int argc, char *argv[])
     printf("SDL video init failed !\n");
     return 1;
   }
+
+  TTF_Init();
+
+  TTF_Font *font = TTF_OpenFont("PressStart2P.ttf", 20);
 
   int width = 900;
   int height = 600;
@@ -381,6 +434,20 @@ int main(int argc, char *argv[])
     draw_apple(surface, &apple, cell_size);
     draw_snake(surface, snake, cell_size, snake_color);
     DRAW_GRID;
+
+    char buffer[64]; // enough space for "Score: <big number>"
+    snprintf(buffer, sizeof(buffer), "Score: %d", gamestate.score);
+    SDL_Color white = {255, 255, 255, 150};
+    SDL_Surface *text_surface = TTF_RenderText_Blended(font, buffer, 0, white);
+    if (text_surface)
+    {
+      SDL_Rect text_rect;
+      text_rect.x = width / 2 - text_surface->w / 2;
+      text_rect.y = height / 4 - text_surface->h / 2;
+      SDL_BlitSurface(text_surface, NULL, surface, &text_rect);
+      SDL_DestroySurface(text_surface);
+    }
+
     SDL_UpdateWindowSurface(window);
     SDL_ClearSurface(surface, 0, 0, 0, 0);
 
@@ -400,6 +467,8 @@ int main(int argc, char *argv[])
   }
 
   free_snake(snake);
+  TTF_CloseFont(font);
+  TTF_Quit();
 
   SDL_DestroyWindow(window);
   SDL_Quit();
