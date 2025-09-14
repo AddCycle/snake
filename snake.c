@@ -1,44 +1,4 @@
-#include <SDL3/SDL.h>
-#include <stdio.h>
-#include <stdlib.h>
-
-// for most countries
-#define MAX_KEYBOARD_KEYS 105
-
-#define LINE_WIDTH 2
-
-#define DRAW_GRID draw_grid(surface, width, height, cell_size)
-#define SNAKE(x, y) fill_cell(surface, x, y, snake_color, cell_size)
-#define APPLE(x, y) fill_cell(surface, x, y, APPLE_COLOR, cell_size)
-
-#define WHITE 0xffffffff
-#define RED 0x00ff0000
-#define YELLOW 0xffff00
-#define GRID_COLOR 0x1f1f1f1f
-#define APPLE_COLOR RED
-
-struct GameState
-{
-  int score;
-};
-
-struct Apple
-{
-  int x, y;
-};
-
-struct SnakeElement
-{
-  int x, y;
-
-  /* only last element is NULL */
-  struct SnakeElement *next;
-};
-
-struct Direction
-{
-  int dx, dy;
-};
+#include "snake.h"
 
 void draw_grid(SDL_Surface *surface, int width, int height, int cell_size)
 {
@@ -209,6 +169,54 @@ void init_keys(SDL_Keycode allowed_keys[MAX_KEYBOARD_KEYS])
   allowed_keys[index++] = SDLK_F;
 }
 
+// the main menu of the game
+int main_menu(SDL_Window *window, SDL_Surface *surface, int width, int height)
+{
+  SDL_Event event;
+  int choice = 0; // 1 = Play, 2 = Quit
+  int running = 1;
+
+  while (running)
+  {
+    // Clear screen
+    SDL_ClearSurface(surface, 0, 0, 0, 0);
+
+    // Draw simple rectangles as buttons with outlines
+    SDL_Rect outline_rect_play = {width / 2 - 110, height / 2 - 55, 220, 60};
+    SDL_Rect play_rect = {width / 2 - 100, height / 2 - 50, 200, 50};
+
+    SDL_Rect outline_rect_quit = {width / 2 - 110, height / 2 - 30 + play_rect.h, 220, 60};
+    SDL_Rect quit_rect = {width / 2 - 100, height / 2 - 25 + play_rect.h, 200, 50};
+
+    if (choice == 1)
+      SDL_FillSurfaceRect(surface, &outline_rect_play, 0xffffff);
+    SDL_FillSurfaceRect(surface, &play_rect, 0x00ff00); // green
+    if (choice == 2)
+      SDL_FillSurfaceRect(surface, &outline_rect_quit, 0xffffff);
+    SDL_FillSurfaceRect(surface, &quit_rect, 0xff0000); // red
+
+    SDL_UpdateWindowSurface(window);
+
+    while (SDL_PollEvent(&event))
+    {
+      if (event.type == SDL_EVENT_QUIT)
+        return 2; // quit
+      if (event.type == SDL_EVENT_KEY_DOWN)
+      {
+        if (event.key.key == SDLK_UP || event.key.key == SDLK_W)
+          choice = 1; // Play selected
+        if (event.key.key == SDLK_DOWN || event.key.key == SDLK_S)
+          choice = 2; // Quit selected
+        if (event.key.key == SDLK_RETURN || event.key.key == SDLK_KP_ENTER || event.key.key == SDLK_SPACE)
+          return choice; // return selection
+        if (event.key.key == SDLK_ESCAPE)
+          return 2; // quit immediately
+      }
+    }
+  }
+  return 2; // default quit
+}
+
 int main(int argc, char *argv[])
 {
   if (!SDL_Init(SDL_INIT_VIDEO))
@@ -228,6 +236,16 @@ int main(int argc, char *argv[])
 
   SDL_Surface *surface = SDL_GetWindowSurface(window);
   SDL_Rect rect = {200, 200, 200, 200};
+
+  // main menu play/quit
+  int menu_choice = main_menu(window, surface, width, height);
+  if (menu_choice == 2) // Quit selected
+  {
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+    return 0;
+  }
+
   SDL_Event event;
 
   int game = 1;
