@@ -331,6 +331,50 @@ int main(int argc, char *argv[])
     return 1;
   }
 
+  /*
+    Audio background music
+  */
+  bool audio_flag = false;
+  if (SDL_Init(SDL_INIT_AUDIO))
+  {
+    printf("SDL audio init success !\n");
+    audio_flag = true;
+  }
+
+  SDL_AudioSpec wavSpec;
+  Uint8 *wavBuffer;
+  Uint64 wavLength;
+
+  if (!SDL_LoadWAV("spider_dance.wav", &wavSpec, &wavBuffer, &wavLength))
+  {
+    printf("Could not load WAV: %s\n", SDL_GetError());
+    return 1;
+  }
+
+  SDL_AudioStream *stream =
+      SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
+                                &wavSpec,
+                                NULL,  // no callback, we’ll push data
+                                NULL); // no userdata
+  if (!stream)
+  {
+    printf("Failed to open audio stream/device: %s\n", SDL_GetError());
+    SDL_free(wavBuffer);
+    SDL_Quit();
+    return 1;
+  }
+
+  if (!SDL_PutAudioStreamData(stream, wavBuffer, (int)wavLength))
+  {
+    printf("Failed to put audio stream data: %s\n", SDL_GetError());
+    SDL_DestroyAudioStream(stream);
+    SDL_free(wavBuffer);
+    SDL_Quit();
+    return 1;
+  }
+
+  SDL_ResumeAudioStreamDevice(stream);
+
   TTF_Init();
 
   TTF_Font *font = TTF_OpenFont("PressStart2P.ttf", 20);
@@ -560,6 +604,23 @@ int main(int argc, char *argv[])
   if (gamestate.score > high_score)
     write_high_score(gamestate.score);
   free_snake(snake);
+
+  if (stream)
+  {
+    /* Optional: wait until stream has finished playing all queued data */
+    /* Simple approach: poll available bytes until zero */
+    while (SDL_GetAudioStreamAvailable(stream) > 0)
+    {
+      SDL_Delay(50);
+    }
+
+    SDL_DestroyAudioStream(stream); /* also closes the audio device */
+  }
+  if (wavBuffer)
+  {
+    SDL_free(wavBuffer);
+  }
+
   TTF_CloseFont(font);
   TTF_Quit();
 
