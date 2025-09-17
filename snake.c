@@ -12,7 +12,13 @@ void write_high_score(int score)
 int read_high_score()
 {
   FILE *file = fopen("high_score.txt", "r");
+
   int score = 0;
+  if (!file)
+  {
+    write_high_score(0);
+    return score;
+  }
 
   fscanf(file, "%d", &score);
 
