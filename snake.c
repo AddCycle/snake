@@ -594,6 +594,11 @@ int main(int argc, char *argv[])
       SDL_DestroySurface(text_surface);
     }
 
+    if (SDL_GetAudioStreamAvailable(stream) == 0)
+    {
+      SDL_PutAudioStreamData(stream, wavBuffer, (int)wavLength);
+    }
+
     SDL_UpdateWindowSurface(window);
     SDL_ClearSurface(surface, 0, 0, 0, 0);
 
