@@ -3,6 +3,11 @@
 void write_high_score(int score)
 {
   FILE *file = fopen("high_score.txt", "w");
+  if (!file)
+  {
+    fprintf(stderr, "write_high_score: failed to open high_score.txt for writing: %s\n", strerror(errno));
+    return;
+  }
 
   fprintf(file, "%d", score);
 
@@ -613,14 +618,7 @@ int main(int argc, char *argv[])
 
   if (stream)
   {
-    /* Optional: wait until stream has finished playing all queued data */
-    /* Simple approach: poll available bytes until zero */
-    while (SDL_GetAudioStreamAvailable(stream) > 0)
-    {
-      SDL_Delay(50);
-    }
-
-    SDL_DestroyAudioStream(stream); /* also closes the audio device */
+    SDL_DestroyAudioStream(stream); /* fix: don't wait for stream just destroy it right away */
   }
   if (wavBuffer)
   {
